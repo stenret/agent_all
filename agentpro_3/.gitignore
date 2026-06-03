@@ -1,0 +1,28 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Data (runtime generated)
+data/orders.json
+data/state/
+data/ticketing.db
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test scripts
+test_*.py
+debug_*.py
