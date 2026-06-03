@@ -176,11 +176,40 @@ agentpro_3/
 
 ## 📝 简历项目描述
 
-**智能演出购票助手** | 全栈开发 | 2026.06
+### 智能演出购票助手 — 全栈 AI Agent 平台
 
-- 设计并实现了基于 **Agent Harness (ETCSLV)** 六元治理模型的 AI Agent 执行引擎，替代 LangChain `AgentExecutor`，解决死循环检测、上下文爆炸、状态丢失、黑盒执行等生产级 Agent 稳定性问题
-- 搭建完整票务业务闭环：搜索 → 选座 → 锁座 → 下单 → 支付 → 退票，覆盖 50+ 场演出、6 城市、10 个业务工具
-- 实现 **NanoEngine** 执行循环，支持 Think→Act→Observe 多步推理、异常恢复、中途停检 (`should_stop`) 与独立目标验证 (`evaluate_success`)
-- 构建 **DictToolRegistry** 工具注册表，支持 JSON Schema 参数校验、`@tool` 装饰器自动注册、多注册表 `merge()` 组合
-- 修复 DeepSeek API 兼容性问题：tool message 消息排序、`arguments` JSON 序列化格式、多轮上下文截断
-- 独立完成前后端：FastAPI 12 端点 + 暗色主题 SPA 前端 (零 JS 框架依赖)
+> 个人项目 | 2026.06 | [GitHub](https://github.com/sternet/agent_all/tree/master/agentpro_3)
+
+**一句话总结：** 自研 Agent Harness (ETCSLV) 六元治理引擎，替代 LangChain 黑盒执行器，构建了一个生产级的智能票务平台。
+
+#### 实现了什么
+
+- 🎫 **完整票务闭环**：搜索 → 选座 → 锁座 → 下单 → 支付 → 退票，覆盖 50+ 场演出、6 城市、10 个业务工具
+- 🤖 **3 个专业 Agent**：ShowSearcher（搜索推荐）、TicketAgent（选座购票）、CustomerService（售后）+ 1 个 Orchestrator（自动编排）
+- 🖥 **前后端分离**：FastAPI 12 个 REST 端点 + 暗色主题 SPA 前端（零 JS 框架依赖）
+- 🔧 **自研 Harness 引擎**：NanoEngine 执行循环、DictToolRegistry 工具注册、ContextManager 上下文压缩、JsonStateStore 状态快照、HookManager 审计钩子、TicketingEvaluator 目标验证
+
+#### 解决了什么问题
+
+| 问题 | 根因 | 解决方案 |
+|------|------|----------|
+| Agent 陷入死循环（重复调用工具不退出） | LangChain AgentExecutor 无中途停检 | **V: mid-loop evaluation** — 连续 3 次失败/2 次重复调用自动终止 |
+| Token 超限导致幻觉/截断 | ConversationBufferMemory 无限增长 | **C: 窗口压缩** — 超 6000 token 自动摘要 + 保留最近 6 轮 |
+| 进程重启后 Agent 状态全部丢失 | 纯内存存储 | **S: 状态快照** — 每步 JSON 持久化到磁盘，崩溃后断点续跑 |
+| 无法追踪 Agent 到底做了什么 | LangChain 回调零散不完整 | **L: 6 阶段审计钩子** — ON_TASK_START / BEFORE_ACTION / AFTER_ACTION / STEP_END / TASK_END |
+| DeepSeek API 400 错误 (tool message 要求 tool_call_id) | assistant/tool 消息顺序颠倒 + arguments 单引号序列化 | 修复消息排序为 assistant→tool + 改用 `json.dumps()` |
+| LLM 拒绝执行购票操作，只说"建议去官网" | 通用 Chat 模型默认保守 | 强化 system prompt + 操作员角色设定 + 显式工具流程指引 |
+
+#### 技术栈
+
+| 层级 | 技术选型 |
+|------|----------|
+| 语言 | **Python 3.10+** |
+| Web 框架 | **FastAPI** + Uvicorn (异步) |
+| LLM | **DeepSeek** (Chat API, OpenAI 兼容协议) |
+| Agent 框架 | **自研 Agent Harness** (ETCSLV 六元模型) + LangChain 适配层 |
+| 工具系统 | JSON Schema 校验 + `@tool` 装饰器 + 多注册表 merge |
+| 前端 | **HTML5 + CSS3 + Vanilla JS** (零 npm 依赖) |
+| 数据持久化 | **SQLAlchemy** + SQLite (对话) + JSON 文件 (状态快照 & 订单) |
+| 工作流 | **LangGraph** (意图识别 → 路由 → 执行) |
+| 版本控制 | **Git** (monorepo: agent_all) |
