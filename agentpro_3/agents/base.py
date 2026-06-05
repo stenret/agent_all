@@ -55,7 +55,7 @@ class HarnessAgent(ABC):
 
     def run(self, task: str, session_id: str = "default", max_steps: int | None = None) -> EngineResult:
         """执行 Agent 任务。"""
-        # 每次执行重建 context 以保持干净的会话
+        # 每次执行重建 context，但保留系统提示词和历史
         self.context = SimpleContextManager(
             system_prompt=self._get_system_prompt(),
             max_tokens=config.CONTEXT_MAX_TOKENS,
@@ -74,7 +74,7 @@ class HarnessAgent(ABC):
             session_id=session_id,
             query=task,
             max_steps=max_steps or config.MAX_STEPS,
-            resume=False,
+            resume=True,  # 从上次状态恢复，保持多轮对话连续性
         )
 
     def get_audit_trail(self) -> list[dict]:

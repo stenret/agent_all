@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from config import config
 from core.database import init_db
 from models.schemas import HealthResponse
-from routers import chat, agent, shows, orders
+from routers import chat, agent, shows, orders, rag
 
 
 @asynccontextmanager
@@ -72,6 +72,7 @@ app.include_router(chat.router)
 app.include_router(agent.router)
 app.include_router(shows.router)
 app.include_router(orders.router)
+app.include_router(rag.router)
 
 # 静态文件（前端 UI）
 import os

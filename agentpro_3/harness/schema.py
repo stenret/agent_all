@@ -81,7 +81,7 @@ class StepResult:
         return {
             "step_num": self.step_num,
             "thought": self.thought,
-            "tool_calls": [tc.to_dict() for tc in self.tool_calls],
+            "tool_calls": [tc.to_dict() if hasattr(tc, "to_dict") else tc for tc in self.tool_calls],
             "observations": self.observations,
             "should_stop": self.should_stop,
             "stop_reason": self.stop_reason,

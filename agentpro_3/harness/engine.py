@@ -81,7 +81,21 @@ class NanoEngine:
         if resume:
             saved = self.state.load_state(session_id)
             if saved:
-                trajectory = saved.get("trajectory", [])
+                # 恢复轨迹：将 dict 转换为 StepResult，同时修复嵌套的 tool_calls
+                raw_traj = saved.get("trajectory", [])
+                trajectory = []
+                for s in raw_traj:
+                    if isinstance(s, dict):
+                        # 将 tool_calls 中的 dict 转为 ToolCall
+                        raw_tcs = s.get("tool_calls", [])
+                        tcs = [
+                            ToolCall(**tc) if isinstance(tc, dict) else tc
+                            for tc in raw_tcs
+                        ]
+                        s["tool_calls"] = tcs
+                        trajectory.append(StepResult(**s))
+                    else:
+                        trajectory.append(s)
                 # 从保存状态恢复上下文
                 for msg_dict in saved.get("messages", []):
                     self.context.add_message(AgentMessage(**msg_dict))
@@ -242,8 +256,8 @@ class NanoEngine:
             "evaluation": eval_result.to_dict(),
         })
 
-        # ---- 8. 清理状态 ----
-        self.state.delete_state(session_id)
+        # ---- 8. 保留状态供下轮对话恢复（不删除） ----
+        self._save_checkpoint(session_id, trajectory, final_answer)
 
         return EngineResult(
             session_id=session_id,
@@ -257,19 +271,25 @@ class NanoEngine:
     # ------------------------------------------------------------------
     # 内部方法
     # ------------------------------------------------------------------
-    def _save_checkpoint(self, session_id: str, trajectory: list[StepResult]) -> None:
-        """保存执行检查点（用于崩溃恢复）"""
+    def _save_checkpoint(self, session_id: str, trajectory: list[StepResult], final_answer: str = "") -> None:
+        """保存执行检查点（用于跨轮次恢复）"""
         messages = []
         for msg_dict in self.context.get_full_context():
-            # 简化存储，仅保留关键字段
+            content = str(msg_dict.get("content", ""))
             messages.append({
                 "role": msg_dict.get("role", ""),
-                "content": str(msg_dict.get("content", ""))[:500],
+                "content": content,
                 "tool_call_id": msg_dict.get("tool_call_id", ""),
             })
+        # 兼容 trajectory 中同时存在 StepResult 对象和恢复后的 dict
+        traj_data = [
+            s.to_dict() if hasattr(s, "to_dict") else s
+            for s in trajectory
+        ]
         self.state.save_state(session_id, {
-            "trajectory": [s.to_dict() for s in trajectory],
+            "trajectory": traj_data,
             "messages": messages,
+            "final_answer": final_answer,
         })
 
     def _generate_final_answer_from_trajectory(

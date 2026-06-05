@@ -29,5 +29,20 @@ class Config:
     # ==================== 订单 ====================
     SEAT_LOCK_TIMEOUT_SEC: int = int(os.getenv("SEAT_LOCK_TIMEOUT_SEC", "300"))
 
+    # ==================== Vector DB (ChromaDB) ====================
+    CHROMA_PERSIST_DIR: str = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma")
+    CHROMA_COLLECTION: str = os.getenv("CHROMA_COLLECTION", "ticketing_knowledge")
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
+    HF_ENDPOINT: str = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
+
+    # ==================== RAG 检索优化 ====================
+    RETRIEVAL_TOP_K: int = int(os.getenv("RETRIEVAL_TOP_K", "5"))
+    RERANK_ENABLED: bool = os.getenv("RERANK_ENABLED", "true").lower() == "true"
+    HYBRID_SEARCH_ENABLED: bool = os.getenv("HYBRID_SEARCH_ENABLED", "true").lower() == "true"
+
+    # ==================== 文件上传 ====================
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./data/uploads")
+    MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "50"))
+
 
 config = Config()

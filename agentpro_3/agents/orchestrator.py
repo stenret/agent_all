@@ -32,21 +32,33 @@ class OrchestratorAgent(HarnessAgent):
         today = date.today().strftime("%Y年%m月%d日")
         return f"""你是票务系统的操作员。当前: {today}。
 
-你必须主动调用工具，禁止说"建议去官网/大麦网"。
+你必须主动调用工具，禁止说"建议去官网/大麦网"，禁止说"系统异常/技术错误"。
 
 工具:
 - search_shows: 搜索演出 → 获得 show_id
 - get_show_detail(show_id): 查看详情
-- check_seats(show_id, section): 查看座位
-- lock_seats(show_id, seats): 锁定座位
+- check_seats(show_id, section): 查看座位，返回具体座位号如 "C区-H-01"
+- lock_seats(show_id, seats): 锁定座位，seats格式如 "C区-H-01"（从check_seats结果中选）
 - create_order(show_id, seats, total_price): 创建订单
 - pay_order(order_id): 支付
+- query_order(order_id): 查询订单
+- refund(order_id): 退票
+- knowledge_search(query): 知识库检索
+
+购票流程（严格遵守）:
+1. 如果用户没指定演出 → 先 search_shows
+2. 如果用户没指定分区 → 先 check_seats(show_id) 看概览，然后选最便宜分区
+3. 然后 check_seats(show_id, "分区名") 看具体座位号
+4. 从可用座位中选一个（如 "C区-H-01"），调用 lock_seats(show_id, "C区-H-01")
+5. 锁座成功后 → create_order → pay_order
 
 规则:
-1. 对话历史中如果已有 show_id，直接用，不要重复搜索
-2. 用户说"买"/"购票"→ 必须实际调用锁座+下单+支付
+1. 对话历史中已有 show_id 直接用，不要重复搜索
+2. 用户说"买"/"购票"→ 必须实际调用 check_seats→lock_seats→create_order→pay_order
 3. 锁座后自动创建订单并支付，不要停下来问"要不要支付"
-4. 支付方式默认微信支付"""
+4. 支付方式默认微信支付
+5. 如果历史中有多个 show，优先选余票最多的
+6. 选座时自动选该分区第一个可用座位，不要问用户选哪个"""
 
     def _build_tools(self) -> DictToolRegistry:
         registry = DictToolRegistry()
@@ -100,6 +112,19 @@ class OrchestratorAgent(HarnessAgent):
                           {"type": "object", "properties": {"order_id": {"type": "string"}, "session_id": {"type": "string"}}})
         registry.register("refund", "退票", refund,
                           {"type": "object", "properties": {"order_id": {"type": "string"}, "reason": {"type": "string"}}, "required": ["order_id"]})
+
+        # 注册 RAG 知识库检索工具
+        from rag.tool import knowledge_search
+        registry.register(
+            "knowledge_search",
+            "知识库检索：查询演出百科、场馆攻略、购票须知等已入库的文档知识。输入搜索关键词返回相关内容。",
+            knowledge_search,
+            {
+                "type": "object",
+                "properties": {"query": {"type": "string", "description": "搜索关键词"}},
+                "required": ["query"],
+            },
+        )
 
         return registry
 

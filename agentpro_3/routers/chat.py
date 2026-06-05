@@ -19,24 +19,14 @@ _session_contexts: dict[str, list[dict]] = {}  # session_id → [{"role":"user"/
 async def chat(req: ChatRequest, db: Session = Depends(get_db)):
     """智能对话入口 — 自动识别意图并调度对应能力，支持多轮对话。"""
 
-    # 获取历史对话
-    history = _session_contexts.get(req.session_id, [])
-
-    # 将历史拼入任务
-    if history:
-        history_text = "\n".join(
-            f"[{h['role']}]: {h['content'][:500]}" for h in history[-6:]  # 最近6轮, 每轮500字符
-        )
-        task = f"<对话历史>\n{history_text}\n</对话历史>\n\n<当前用户消息>\n{req.message}\n</当前用户消息>"
-    else:
-        task = req.message
-
+    # 直接传递用户消息，引擎通过 resume 机制自动恢复历史上下文
     result = _orchestrator.run(
-        task=task,
+        task=req.message,
         session_id=req.session_id,
     )
 
-    # 更新会话记忆
+    # 更新会话记忆（用于前端展示历史）
+    history = _session_contexts.get(req.session_id, [])
     history.append({"role": "user", "content": req.message})
     history.append({"role": "assistant", "content": result.final_answer[:600]})
     _session_contexts[req.session_id] = history

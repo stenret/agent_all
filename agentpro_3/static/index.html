@@ -191,6 +191,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <div class="nav-item" data-panel="orders">
       <span class="icon">📋</span> 我的订单
     </div>
+    <div class="nav-item" onclick="newChat()" style="margin-top:12px;border-top:1px solid var(--border);padding-top:14px;color:var(--accent)">
+      <span class="icon">✨</span> 新对话
+    </div>
   </nav>
   <div class="sidebar-footer">
     <span class="status-dot"></span> Agent Harness (ETCSLV) v3.0
@@ -253,6 +256,26 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 <script>
 const API = '';
 let sessionId = 'web-' + Date.now();
+
+// 新对话：重置 session，清空聊天记录
+function newChat() {
+  sessionId = 'web-' + Date.now();
+  document.getElementById('messages').innerHTML = `
+    <div class="msg assistant">
+      <div class="avatar">🤖</div>
+      <div>
+        <div class="bubble">你好！我是智能演出购票助手 🎫<br><br>我可以帮你：<br>🔍 <b>搜索演出</b> — 按城市、类型、日期<br>🎫 <b>购买门票</b> — 选座、下单、支付<br>📋 <b>订单管理</b> — 查询、退票<br>📚 <b>知识问答</b> — 场馆攻略、购票须知<br><br>试试说：<i>"搜索周杰伦演唱会，帮我订一张最便宜的票"</i></div>
+      </div>
+    </div>`;
+  // 切换到对话面板
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelector('[data-panel="chat"]').classList.add('active');
+  document.getElementById('chatPanel').style.display = 'flex';
+  document.getElementById('showsPanel').classList.remove('active');
+  document.getElementById('ordersPanel').classList.remove('active');
+  document.getElementById('panelTitle').textContent = '💬 智能对话';
+  currentPanel = 'chat';
+}
 let currentPanel = 'chat';
 
 // Navigation
